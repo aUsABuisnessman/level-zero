@@ -29,6 +29,10 @@ else()
     )
 endif()
 
+if(MSVC AND L0_DLL_INTEGRITY_CHECKS)
+    set_target_properties(ze_loader PROPERTIES LINK_FLAGS "${CMAKE_CXX_LINKER_WRAPPER_FLAG}/INTEGRITYCHECK")
+endif()
+
 add_subdirectory(lib)
 if (NOT BUILD_STATIC)
     add_subdirectory(loader)
@@ -70,7 +74,7 @@ install(TARGETS ze_loader
     NAMELINK_COMPONENT ${SDK_COMPONENT_STRING}
 )
 
-if(!BUILD_INSTALLER)
+if(NOT BUILD_INSTALLER)
 file(RELATIVE_PATH pkgconfig_prefix "${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig" "${CMAKE_INSTALL_PREFIX}")
 file(RELATIVE_PATH pkgconfig_include_dir "${CMAKE_INSTALL_PREFIX}" "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
 file(RELATIVE_PATH pkgconfig_lib_dir "${CMAKE_INSTALL_PREFIX}" "${CMAKE_INSTALL_FULL_LIBDIR}")

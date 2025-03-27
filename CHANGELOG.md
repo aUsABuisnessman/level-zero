@@ -1,5 +1,12 @@
 # Level zero loader changelog
 
+## v1.21.7
+* Update default SDK install path to include Program Files
+## v1.21.6
+* Fix to pkgconfig during non build installer cmake install
+## v1.21.5
+* Check zesInit pfnInit before attempting call
+* Added build flag L0_DLL_INTEGRITY_CHECKS to enable integrity check of DLLs
 ## v1.21.3
 * Fix sorting drivers missing function pointers and add multi driver ults
 * Add support for SDK installer on windows
