@@ -13,7 +13,7 @@ if(MSVC AND (MSVC_VERSION LESS 1900))
 endif()
 
 # This project follows semantic versioning (https://semver.org/)
-project(level-zero VERSION 1.21.7)
+project(level-zero VERSION 1.21.8)
 
 include(GNUInstallDirs)
 
@@ -97,6 +97,8 @@ if(MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /DYNAMICBASE")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_CXX_LINKER_WRAPPER_FLAG}/DYNAMICBASE")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_CXX_LINKER_WRAPPER_FLAG}/guard:cf")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_CXX_LINKER_WRAPPER_FLAG}/LTCG")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_CXX_LINKER_WRAPPER_FLAG}/GL")
     # enable Spectre Mitigation, not supported by clang-cl
     if((NOT CMAKE_CXX_COMPILER_ID STREQUAL Clang) AND (NOT CMAKE_CXX_COMPILER_ID STREQUAL IntelLLVM))
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Qspectre")
@@ -249,6 +251,35 @@ install(FILES ${LEVEL_ZERO_LOADER_API_HEADERS}
     COMPONENT ${SDK_COMPONENT_STRING}
 )
 
+set(PRODUCT_GUID_FILE "${CMAKE_SOURCE_DIR}/PRODUCT_GUID.txt")
+if(EXISTS "${PRODUCT_GUID_FILE}")
+    file(STRINGS "${PRODUCT_GUID_FILE}" SAVED_PRODUCT_GUID)
+    list(GET SAVED_PRODUCT_GUID 0 SAVED_PRODUCT_GUID_VERSION)
+    message(STATUS "Saved Product GUID: ${SAVED_PRODUCT_GUID_VERSION}")
+    message(STATUS "project version: ${PROJECT_VERSION}")
+    if(NOT SAVED_PRODUCT_GUID_VERSION STREQUAL "${PROJECT_VERSION}")
+
+    execute_process(
+        COMMAND python ${CMAKE_SOURCE_DIR}/scripts/generate_wix_guid.py
+        OUTPUT_VARIABLE GENERATED_PRODUCT_GUID
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    file(WRITE "${PRODUCT_GUID_FILE}" "${PROJECT_VERSION}\n${GENERATED_PRODUCT_GUID}")
+    message(STATUS "Generated Product GUID: ${GENERATED_PRODUCT_GUID} for version ${PROJECT_VERSION}")
+    else()
+    string(REPLACE "\n" ";" GUID_CONTENTS "${SAVED_PRODUCT_GUID}")
+    list(GET GUID_CONTENTS 1 GENERATED_PRODUCT_GUID)
+    endif()
+else()
+    execute_process(
+    COMMAND python ${CMAKE_SOURCE_DIR}/scripts/generate_wix_guid.py
+    OUTPUT_VARIABLE GENERATED_PRODUCT_GUID
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    file(WRITE "${PRODUCT_GUID_FILE}" "${PROJECT_VERSION}\n${GENERATED_PRODUCT_GUID}")
+endif()
+message(STATUS "Using Product GUID: ${GENERATED_PRODUCT_GUID} for version ${PROJECT_VERSION}")
+
 # If generators list was not define build native package for current distro
 if(NOT DEFINED CPACK_GENERATOR)
 	if(EXISTS "/etc/debian_version")
@@ -258,34 +289,6 @@ if(NOT DEFINED CPACK_GENERATOR)
 	elseif(EXISTS "/etc/SUSE-brand" OR EXISTS "/etc/SUSE-release" OR sles_distro)
 		set(CPACK_GENERATOR "RPM")
     elseif(BUILD_INSTALLER)
-        set(PRODUCT_GUID_FILE "${CMAKE_SOURCE_DIR}/PRODUCT_GUID.txt")
-        if(EXISTS "${PRODUCT_GUID_FILE}")
-            file(STRINGS "${PRODUCT_GUID_FILE}" SAVED_PRODUCT_GUID)
-            list(GET SAVED_PRODUCT_GUID 0 SAVED_PRODUCT_GUID_VERSION)
-            message(STATUS "Saved Product GUID: ${SAVED_PRODUCT_GUID_VERSION}")
-            message(STATUS "project version: ${PROJECT_VERSION}")
-            if(NOT SAVED_PRODUCT_GUID_VERSION STREQUAL "${PROJECT_VERSION}")
-
-            execute_process(
-                COMMAND python ${CMAKE_SOURCE_DIR}/scripts/generate_wix_guid.py
-                OUTPUT_VARIABLE GENERATED_PRODUCT_GUID
-                OUTPUT_STRIP_TRAILING_WHITESPACE
-            )
-            file(WRITE "${PRODUCT_GUID_FILE}" "${PROJECT_VERSION}\n${GENERATED_PRODUCT_GUID}")
-            message(STATUS "Generated Product GUID: ${GENERATED_PRODUCT_GUID} for version ${PROJECT_VERSION}")
-            else()
-            string(REPLACE "\n" ";" GUID_CONTENTS "${SAVED_PRODUCT_GUID}")
-            list(GET GUID_CONTENTS 1 GENERATED_PRODUCT_GUID)
-            endif()
-        else()
-            execute_process(
-            COMMAND python ${CMAKE_SOURCE_DIR}/scripts/generate_wix_guid.py
-            OUTPUT_VARIABLE GENERATED_PRODUCT_GUID
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            )
-            file(WRITE "${PRODUCT_GUID_FILE}" "${PROJECT_VERSION}\n${GENERATED_PRODUCT_GUID}")
-        endif()
-        message(STATUS "Using Product GUID: ${GENERATED_PRODUCT_GUID} for version ${PROJECT_VERSION}")
         set(CPACK_GENERATOR "WIX")
         set(CPACK_PACKAGE_NAME "oneAPI Level Zero")
         set(CPACK_PACKAGE_FILE_NAME "oneAPI_Level_Zero-${PROJECT_VERSION}-win64")
